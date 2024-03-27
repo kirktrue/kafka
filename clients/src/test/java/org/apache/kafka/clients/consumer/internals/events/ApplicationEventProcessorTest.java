@@ -86,7 +86,8 @@ public class ApplicationEventProcessorTest {
         processor = new ApplicationEventProcessor(
             new LogContext(),
             requestManagers,
-            metadata
+            metadata,
+            time
         );
     }
 
@@ -94,7 +95,7 @@ public class ApplicationEventProcessorTest {
     public void testPrepClosingCommitEvents() {
         List<NetworkClientDelegate.UnsentRequest> results = mockCommitResults();
         doReturn(new NetworkClientDelegate.PollResult(100, results)).when(commitRequestManager).pollOnClose();
-        processor.process(new CommitOnCloseEvent());
+        processor.process(new CommitOnCloseEvent(time.timer(100)));
         verify(commitRequestManager).signalClose();
     }
 
