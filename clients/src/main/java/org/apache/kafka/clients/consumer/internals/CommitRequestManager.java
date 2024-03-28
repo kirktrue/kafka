@@ -505,10 +505,12 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
 
         // Retry the same fetch request while it fails with RetriableException and the retry timeout hasn't expired.
         currentResult.whenComplete((res, error) -> {
+            log.warn("KIRK_DEBUG - fetchOffsetsWithRetries - inflightOffsetFetches: {}", pendingRequests.inflightOffsetFetches);
             boolean inflightRemoved = pendingRequests.inflightOffsetFetches.remove(fetchRequest);
             if (!inflightRemoved) {
-                log.warn("A duplicated, inflight, request was identified, but unable to find it in the " +
-                    "outbound buffer:" + fetchRequest);
+                log.warn("KIRK_DEBUG - fetchOffsetsWithRetries - A duplicated, inflight, request was identified ({}), but unable to find it in the inflightOffsetFetches: {}", fetchRequest, pendingRequests.inflightOffsetFetches);
+            } else {
+                log.warn("KIRK_DEBUG - fetchOffsetsWithRetries - removed fetch request, inflightOffsetFetches: {}", pendingRequests.inflightOffsetFetches);
             }
             if (error == null) {
                 result.complete(res);
@@ -590,6 +592,8 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
      * before closing.
      */
     public NetworkClientDelegate.PollResult drainPendingOffsetCommitRequests() {
+        log.debug("KIRK_DEBUG - drainPendingOffsetCommitRequests - unsent offset commits: {}", pendingRequests.unsentOffsetCommits);
+
         if (pendingRequests.unsentOffsetCommits.isEmpty())
             return EMPTY;
         List<NetworkClientDelegate.UnsentRequest> requests = pendingRequests.drainPendingCommits();
@@ -1127,15 +1131,22 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
          * upon completion.
          */
         private CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> addOffsetFetchRequest(final OffsetFetchRequestState request) {
-            Optional<OffsetFetchRequestState> dupe =
+            log.warn("KIRK_DEBUG - addOffsetFetchRequest - request: {}, unsentOffsetFetches: {}", request, unsentOffsetFetches);
+            log.warn("KIRK_DEBUG - addOffsetFetchRequest - request: {}, unsentOffsetFetches: {}", request, unsentOffsetFetches);
+
+            Optional<OffsetFetchRequestState> unsent =
                     unsentOffsetFetches.stream().filter(r -> r.sameRequest(request)).findAny();
             Optional<OffsetFetchRequestState> inflight =
                     inflightOffsetFetches.stream().filter(r -> r.sameRequest(request)).findAny();
 
-            if (dupe.isPresent() || inflight.isPresent()) {
-                log.info("Duplicated OffsetFetchRequest: " + request.requestedPartitions);
-                dupe.orElseGet(() -> inflight.get()).chainFuture(request.future);
+            if (unsent.isPresent()) {
+                log.info("KIRK_DEBUG - Duplicated unsent request linked: " + request);
+                unsent.get().chainFuture(request.future);
+            } if (inflight.isPresent()) {
+                log.info("KIRK_DEBUG - Duplicated inflight request linked: " + request);
+                inflight.get().chainFuture(request.future);
             } else {
+                log.info("KIRK_DEBUG - Unique request added to unsent: " + request);
                 this.unsentOffsetFetches.add(request);
             }
             return request.future;
@@ -1206,7 +1217,9 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
         }
 
         private void clearAll() {
+            log.debug("KIRK_DEBUG: clearing unsent offset commits: {}", unsentOffsetCommits);
             unsentOffsetCommits.clear();
+            log.debug("KIRK_DEBUG: clearing unsent offset fetches: {}", unsentOffsetFetches);
             unsentOffsetFetches.clear();
         }
 
