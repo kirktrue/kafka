@@ -146,7 +146,7 @@ class RequestState {
      */
     protected String toStringBase() {
         return "owner='" + owner + '\'' +
-                ", exponentialBackoff=" + exponentialBackoff +
+//                ", exponentialBackoff=" + exponentialBackoff +
                 ", lastSentMs=" + lastSentMs +
                 ", lastReceivedMs=" + lastReceivedMs +
                 ", numAttempts=" + numAttempts +

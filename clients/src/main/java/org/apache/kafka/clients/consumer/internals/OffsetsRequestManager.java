@@ -377,7 +377,7 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
         log.debug("Creating ListOffset request {} for broker {} to reset positions", builder,
                 node);
 
-        Timer timer = requestState.remaining(time, requestTimeoutMs);
+        Timer timer = time.timer(requestTimeoutMs);
         NetworkClientDelegate.UnsentRequest unsentRequest = new NetworkClientDelegate.UnsentRequest(
                 builder,
                 Optional.ofNullable(node),
@@ -561,7 +561,7 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
 
         log.debug("Creating OffsetsForLeaderEpoch request request {} to broker {}", builder, node);
 
-        Timer timer = requestState.remaining(time, requestTimeoutMs);
+        Timer timer = time.timer(requestTimeoutMs);
         NetworkClientDelegate.UnsentRequest unsentRequest = new NetworkClientDelegate.UnsentRequest(
                 builder,
                 Optional.ofNullable(node),

@@ -312,7 +312,7 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
             } else {
                 if (error instanceof RetriableException || isStaleEpochErrorAndValidEpochAvailable(error)) {
                     if (error instanceof TimeoutException && requestAttempt.isExpired()) {
-                        log.debug("Auto-commit sync before revocation timed out and won't be retried anymore");
+                        log.debug("KIRK_DEBUG - autoCommitSyncBeforeRevocationWithRetries - Auto-commit sync before revocation timed out and won't be retried anymore");
                         result.completeExceptionally(error);
                     } else if (error instanceof UnknownTopicOrPartitionException) {
                         log.debug("Auto-commit sync before revocation failed because topic or partition were deleted");
@@ -431,7 +431,7 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
             } else {
                 if (error instanceof RetriableException) {
                     if (error instanceof TimeoutException && requestAttempt.isExpired()) {
-                        log.info("OffsetCommit timeout expired so it won't be retried anymore");
+                        log.info("KIRK_DEBUG - commitSyncWithRetries - OffsetCommit timeout expired so it won't be retried anymore");
                         result.completeExceptionally(error);
                     } else {
                         requestAttempt.resetFuture();
@@ -477,6 +477,7 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
         }
         CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> result = new CompletableFuture<>();
         OffsetFetchRequestState request = createOffsetFetchRequest(partitions, timer);
+        log.debug("KIRK_DEBUG - fetchOffsets - timer: {}, fetchRequest: {}", timer.remainingMs(), request);
         fetchOffsetsWithRetries(request, result);
         return result;
     }
@@ -501,22 +502,32 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
 
     private void fetchOffsetsWithRetries(final OffsetFetchRequestState fetchRequest,
                                          final CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> result) {
+        log.debug("KIRK_DEBUG - fetchOffsetsWithRetries - fetchRequest: {}", fetchRequest);
         CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> currentResult = pendingRequests.addOffsetFetchRequest(fetchRequest);
 
         // Retry the same fetch request while it fails with RetriableException and the retry timeout hasn't expired.
         currentResult.whenComplete((res, error) -> {
-            log.warn("KIRK_DEBUG - fetchOffsetsWithRetries - inflightOffsetFetches: {}", pendingRequests.inflightOffsetFetches);
             boolean inflightRemoved = pendingRequests.inflightOffsetFetches.remove(fetchRequest);
+
+            log.debug("KIRK_DEBUG - fetchOffsetsWithRetries - call stack", new Exception("Caller"));
+
             if (!inflightRemoved) {
-                log.warn("KIRK_DEBUG - fetchOffsetsWithRetries - A duplicated, inflight, request was identified ({}), but unable to find it in the inflightOffsetFetches: {}", fetchRequest, pendingRequests.inflightOffsetFetches);
+                log.warn("KIRK_DEBUG - fetchOffsetsWithRetries (on request completion) - request not removed: {}", fetchRequest);
             } else {
-                log.warn("KIRK_DEBUG - fetchOffsetsWithRetries - removed fetch request, inflightOffsetFetches: {}", pendingRequests.inflightOffsetFetches);
+                log.debug("KIRK_DEBUG - fetchOffsetsWithRetries (on request completion) - request removed");
             }
+
+            logRequests("fetchOffsetsWithRetries (on request completion)", "unsent", pendingRequests.unsentOffsetFetches);
+            logRequests("fetchOffsetsWithRetries (on request completion)", "inflight", pendingRequests.inflightOffsetFetches);
+
             if (error == null) {
                 result.complete(res);
             } else {
+                log.warn("KIRK_DEBUG - fetchOffsetsWithRetries (on request completion) - exception: {}, request: {}", error, fetchRequest);
+
                 if (error instanceof RetriableException || isStaleEpochErrorAndValidEpochAvailable(error)) {
                     if (error instanceof TimeoutException && fetchRequest.isExpired()) {
+                        log.info("KIRK_DEBUG - fetchOffsetsWithRetries (on request completion) - OffsetCommit timeout expired so it won't be retried anymore");
                         result.completeExceptionally(error);
                     } else {
                         fetchRequest.resetFuture();
@@ -592,8 +603,6 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
      * before closing.
      */
     public NetworkClientDelegate.PollResult drainPendingOffsetCommitRequests() {
-        log.debug("KIRK_DEBUG - drainPendingOffsetCommitRequests - unsent offset commits: {}", pendingRequests.unsentOffsetCommits);
-
         if (pendingRequests.unsentOffsetCommits.isEmpty())
             return EMPTY;
         List<NetworkClientDelegate.UnsentRequest> requests = pendingRequests.drainPendingCommits();
@@ -643,7 +652,8 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
             this.future = new CompletableFuture<>();
         }
 
-        public NetworkClientDelegate.UnsentRequest toUnsentRequest() {
+        @Override
+        protected NetworkClientDelegate.UnsentRequest toUnsentRequest() {
             Map<String, OffsetCommitRequestData.OffsetCommitRequestTopic> requestTopicDataMap = new HashMap<>();
             for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : offsets.entrySet()) {
                 TopicPartition topicPartition = entry.getKey();
@@ -757,24 +767,17 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
         }
 
         @Override
-        String requestDescription() {
+        protected String requestDescription() {
             return "OffsetCommit request for offsets " + offsets;
         }
 
         @Override
-        CompletableFuture<?> future() {
+        protected CompletableFuture<?> future() {
             return future;
         }
 
         void resetFuture() {
             future = new CompletableFuture<>();
-        }
-
-        @Override
-        void removeRequest() {
-            if (!unsentOffsetCommitRequests().remove(this)) {
-                log.warn("OffsetCommit request to remove not found in the outbound buffer: {}", this);
-            }
         }
 
         @Override
@@ -815,30 +818,19 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
          * @return String containing the request name and arguments, to be used for logging
          * purposes.
          */
-        abstract String requestDescription();
+        protected abstract String requestDescription();
 
         /**
          * @return Future that will complete with the request response or failure.
          */
-        abstract CompletableFuture<?> future();
-
-        /**
-         * Complete the request future with a TimeoutException if the request timeout has been
-         * reached, based on the provided current time.
-         */
-        void maybeExpire() {
-            if (isExpired()) {
-                removeRequest();
-                future().completeExceptionally(new TimeoutException(requestDescription() +
-                    " could not complete before timeout expired."));
-            }
-        }
+        protected abstract CompletableFuture<?> future();
 
         /**
          * Build request with the given builder, including response handling logic.
          */
         NetworkClientDelegate.UnsentRequest buildRequestWithResponseHandling(final AbstractRequest.Builder<?> builder) {
-            Timer timer = this.remaining(time, requestTimeoutMs);
+            onSendAttempt(time.milliseconds());
+            Timer timer = time.timer(requestTimeoutMs);
             NetworkClientDelegate.UnsentRequest request = new NetworkClientDelegate.UnsentRequest(
                 builder,
                 coordinatorRequestManager.coordinator(),
@@ -846,8 +838,8 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
             );
             request.whenComplete(
                 (response, throwable) -> {
-                    long currentTimeMs = request.handler().completionTimeMs();
-                    handleClientResponse(response, throwable, currentTimeMs);
+                    long completionTimeMs = request.handler().completionTimeMs();
+                    handleClientResponse(response, throwable, completionTimeMs);
                 });
             return request;
         }
@@ -870,13 +862,13 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
             }
         }
 
-        abstract void onResponse(final ClientResponse response);
+        protected abstract void onResponse(final ClientResponse response);
 
-        abstract void removeRequest();
+        protected abstract NetworkClientDelegate.UnsentRequest toUnsentRequest();
 
         @Override
         protected String toStringBase() {
-            return super.toStringBase() + ", memberInfo=" + memberInfo;
+            return super.toStringBase();
         }
     }
 
@@ -920,8 +912,8 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
             return requestedPartitions.equals(request.requestedPartitions);
         }
 
-        public NetworkClientDelegate.UnsentRequest toUnsentRequest() {
-
+        @Override
+        protected NetworkClientDelegate.UnsentRequest toUnsentRequest() {
             OffsetFetchRequest.Builder builder;
             if (memberInfo.memberId.isPresent() && memberInfo.memberEpoch.isPresent()) {
                 builder = new OffsetFetchRequest.Builder(
@@ -947,7 +939,7 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
          * Handle OffsetFetch response, including successful and failed.
          */
         @Override
-        void onResponse(final ClientResponse response) {
+        protected void onResponse(final ClientResponse response) {
             long currentTimeMs = response.receivedTimeMs();
             OffsetFetchResponse fetchResponse = (OffsetFetchResponse) response.responseBody();
             Errors responseError = fetchResponse.groupLevelError(groupId);
@@ -991,24 +983,17 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
         }
 
         @Override
-        String requestDescription() {
+        protected String requestDescription() {
             return "OffsetFetch request for partitions " + requestedPartitions;
         }
 
         @Override
-        CompletableFuture<?> future() {
+        protected CompletableFuture<?> future() {
             return future;
         }
 
         void resetFuture() {
             future = new CompletableFuture<>();
-        }
-
-        @Override
-        void removeRequest() {
-            if (!unsentOffsetFetchRequests().remove(this)) {
-                log.warn("OffsetFetch request to remove not found in the outbound buffer: {}", this);
-            }
         }
 
         /**
@@ -1089,7 +1074,7 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
 
         @Override
         public String toStringBase() {
-            return super.toStringBase() + ", " + ", requestedPartitions=" + requestedPartitions + ", future=" + future;
+            return super.toStringBase() + ", requestedPartitions=" + requestedPartitions + ", future=" + future;
         }
     }
 
@@ -1131,8 +1116,9 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
          * upon completion.
          */
         private CompletableFuture<Map<TopicPartition, OffsetAndMetadata>> addOffsetFetchRequest(final OffsetFetchRequestState request) {
-            log.warn("KIRK_DEBUG - addOffsetFetchRequest - request: {}, unsentOffsetFetches: {}", request, unsentOffsetFetches);
-            log.warn("KIRK_DEBUG - addOffsetFetchRequest - request: {}, unsentOffsetFetches: {}", request, unsentOffsetFetches);
+            log.debug("KIRK_DEBUG - addOffsetFetchRequest - request: {}", request);
+            logRequests("addOffsetFetchRequest", "unsent (at start)", pendingRequests.unsentOffsetFetches);
+            logRequests("addOffsetFetchRequest", "inflight", pendingRequests.inflightOffsetFetches);
 
             Optional<OffsetFetchRequestState> unsent =
                     unsentOffsetFetches.stream().filter(r -> r.sameRequest(request)).findAny();
@@ -1140,15 +1126,17 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
                     inflightOffsetFetches.stream().filter(r -> r.sameRequest(request)).findAny();
 
             if (unsent.isPresent()) {
-                log.info("KIRK_DEBUG - Duplicated unsent request linked: " + request);
+                log.debug("KIRK_DEBUG - addOffsetFetchRequest - duplicated request linked to unsent request: {}", request);
                 unsent.get().chainFuture(request.future);
-            } if (inflight.isPresent()) {
-                log.info("KIRK_DEBUG - Duplicated inflight request linked: " + request);
+            } else if (inflight.isPresent()) {
+                log.debug("KIRK_DEBUG - addOffsetFetchRequest - duplicated request linked to inflight request: {}", request);
                 inflight.get().chainFuture(request.future);
             } else {
-                log.info("KIRK_DEBUG - Unique request added to unsent: " + request);
-                this.unsentOffsetFetches.add(request);
+                unsentOffsetFetches.add(request);
+                log.debug("KIRK_DEBUG - addOffsetFetchRequest - request added to unsent queue: {}", request);
+                logRequests("addOffsetFetchRequest", "unsent (at end)", pendingRequests.unsentOffsetFetches);
             }
+
             return request.future;
         }
 
@@ -1159,6 +1147,9 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
          * backoff on failed attempt. See {@link RequestState}.
          */
         List<NetworkClientDelegate.UnsentRequest> drain(final long currentTimeMs) {
+            logRequests("drain", "inflight (at start)", inflightOffsetFetches);
+            logRequests("drain", "unsent (at start)", unsentOffsetFetches);
+
             List<NetworkClientDelegate.UnsentRequest> unsentRequests = new ArrayList<>();
 
             // not ready to sent request
@@ -1166,14 +1157,11 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
                 .filter(request -> !request.canSendRequest(currentTimeMs))
                 .collect(Collectors.toList());
 
-            failAndRemoveExpiredCommitRequests();
-
             // Add all unsent offset commit requests to the unsentRequests list
             unsentRequests.addAll(
                     unsentOffsetCommits.stream()
                         .filter(request -> request.canSendRequest(currentTimeMs))
-                        .peek(request -> request.onSendAttempt(currentTimeMs))
-                        .map(OffsetCommitRequestState::toUnsentRequest)
+                        .map(RetriableRequestState::toUnsentRequest)
                         .collect(Collectors.toList()));
 
             // Partition the unsent offset fetch requests into sendable and non-sendable lists
@@ -1181,45 +1169,30 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
                     unsentOffsetFetches.stream()
                             .collect(Collectors.partitioningBy(request -> request.canSendRequest(currentTimeMs)));
 
-            failAndRemoveExpiredFetchRequests();
-
             // Add all sendable offset fetch requests to the unsentRequests list and to the inflightOffsetFetches list
             for (OffsetFetchRequestState request : partitionedBySendability.get(true)) {
                 request.onSendAttempt(currentTimeMs);
                 unsentRequests.add(request.toUnsentRequest());
+                if (inflightOffsetFetches.contains(request)) {
+                    log.warn("KIRK_DEBUG - drain - request already in inflight: {}", request);
+                }
                 inflightOffsetFetches.add(request);
+                logRequests("drain", "inflight (in middle after add)", inflightOffsetFetches);
             }
 
             // Clear the unsent offset commit and fetch lists and add all non-sendable offset fetch requests to the unsentOffsetFetches list
             clearAll();
             unsentOffsetFetches.addAll(partitionedBySendability.get(false));
             unsentOffsetCommits.addAll(unreadyCommitRequests);
+            logRequests("drain", "inflight (at end)", inflightOffsetFetches);
+            logRequests("drain", "unsent (at end)", unsentOffsetFetches);
 
             return Collections.unmodifiableList(unsentRequests);
         }
 
-        /**
-         * Find the unsent commit requests that have expired, remove them and complete their
-         * futures with a TimeoutException.
-         */
-        private void failAndRemoveExpiredCommitRequests() {
-            Queue<OffsetCommitRequestState> requestsToPurge = new LinkedList<>(unsentOffsetCommits);
-            requestsToPurge.forEach(RetriableRequestState::maybeExpire);
-        }
-
-        /**
-         * Find the unsent fetch requests that have expired, remove them and complete their
-         * futures with a TimeoutException.
-         */
-        private void failAndRemoveExpiredFetchRequests() {
-            Queue<OffsetFetchRequestState> requestsToPurge = new LinkedList<>(unsentOffsetFetches);
-            requestsToPurge.forEach(RetriableRequestState::maybeExpire);
-        }
-
         private void clearAll() {
-            log.debug("KIRK_DEBUG: clearing unsent offset commits: {}", unsentOffsetCommits);
             unsentOffsetCommits.clear();
-            log.debug("KIRK_DEBUG: clearing unsent offset fetches: {}", unsentOffsetFetches);
+            logRequests("clearAll", "about to clear unsent", unsentOffsetFetches);
             unsentOffsetFetches.clear();
         }
 
@@ -1290,4 +1263,13 @@ public class CommitRequestManager implements RequestManager, MemberStateListener
                     '}';
         }
     }
+
+    private void logRequests(String methodName, String message, Collection<OffsetFetchRequestState> requests) {
+        log.debug("KIRK_DEBUG - {} - {}", methodName, message);
+
+        for (OffsetFetchRequestState request : requests) {
+            log.debug("KIRK_DEBUG - {} -     {}", methodName, request);
+        }
+    }
+
 }

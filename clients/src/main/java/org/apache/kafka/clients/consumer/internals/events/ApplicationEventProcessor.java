@@ -299,11 +299,8 @@ public class ApplicationEventProcessor implements EventProcessor<ApplicationEven
      * Recreate a {@link Timer} from the event's {@link CompletableApplicationEvent#deadlineMs() deadline/expiration}.
      */
     private Timer eventTimer(final CompletableApplicationEvent<?> event) {
-        long diffMs = event.deadlineMs() - time.milliseconds();
-
-        // It's possible that the timeout has already passed, so make sure the timeout is non-negative
-        // to avoid an exception when creating the timer.
-        long timeoutMs = Math.max(0, diffMs);
+        long timeoutMs = event.timeoutMs();
+        log.debug("KIRK_DEBUG - eventTimer - timeoutMs: {}, event: {}", timeoutMs, event);
         return time.timer(timeoutMs);
     }
 

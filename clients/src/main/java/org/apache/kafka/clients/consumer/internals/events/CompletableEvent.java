@@ -62,4 +62,13 @@ public interface CompletableEvent<T> {
      * @return
      */
     long deadlineMs();
+
+
+    /**
+     * This is the deadline that represents the absolute wall clock time by which any event-specific execution should
+     * complete. This is not a timeout value. <em>After</em> this time has passed,
+     * {@link CompletableFuture#completeExceptionally(Throwable)} will be invoked with an instance of
+     * {@link TimeoutException}.
+     */
+    long timeoutMs();
 }
