@@ -39,6 +39,7 @@ import org.apache.kafka.common.requests.OffsetsForLeaderEpochRequest;
 import org.apache.kafka.common.requests.OffsetsForLeaderEpochResponse;
 import org.apache.kafka.common.utils.LogContext;
 import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.common.utils.Timer;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -76,12 +77,15 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
     private final ConsumerMetadata metadata;
     private final IsolationLevel isolationLevel;
     private final Logger log;
+    private final LogContext logContext;
     private final OffsetFetcherUtils offsetFetcherUtils;
     private final SubscriptionState subscriptionState;
 
     private final Set<ListOffsetsRequestState> requestsToRetry;
     private final List<NetworkClientDelegate.UnsentRequest> requestsToSend;
-    private final long requestTimeoutMs;
+    private final long retryBackoffMs;
+    private final long retryBackoffMaxMs;
+    private final int requestTimeoutMs;
     private final Time time;
     private final ApiVersions apiVersions;
     private final NetworkClientDelegate networkClientDelegate;
@@ -93,7 +97,8 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
                                  final IsolationLevel isolationLevel,
                                  final Time time,
                                  final long retryBackoffMs,
-                                 final long requestTimeoutMs,
+                                 final long retryBackoffMaxMs,
+                                 final int requestTimeoutMs,
                                  final ApiVersions apiVersions,
                                  final NetworkClientDelegate networkClientDelegate,
                                  final BackgroundEventHandler backgroundEventHandler,
@@ -110,10 +115,13 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
         this.metadata = metadata;
         this.isolationLevel = isolationLevel;
         this.log = logContext.logger(getClass());
+        this.logContext = logContext;
         this.requestsToRetry = new HashSet<>();
         this.requestsToSend = new ArrayList<>();
         this.subscriptionState = subscriptionState;
         this.time = time;
+        this.retryBackoffMs = retryBackoffMs;
+        this.retryBackoffMaxMs = retryBackoffMaxMs;
         this.requestTimeoutMs = requestTimeoutMs;
         this.apiVersions = apiVersions;
         this.networkClientDelegate = networkClientDelegate;
@@ -153,13 +161,18 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
      */
     public CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsets(
             final Map<TopicPartition, Long> timestampsToSearch,
-            final boolean requireTimestamps) {
+            final boolean requireTimestamps,
+            final Timer timer) {
         if (timestampsToSearch.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.emptyMap());
         }
         metadata.addTransientTopics(OffsetFetcherUtils.topicsForPartitions(timestampsToSearch.keySet()));
 
         ListOffsetsRequestState listOffsetsRequestState = new ListOffsetsRequestState(
+                logContext,
+                retryBackoffMs,
+                retryBackoffMaxMs,
+                timer,
                 timestampsToSearch,
                 requireTimestamps,
                 offsetFetcherUtils,
@@ -348,9 +361,11 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
         log.debug("Creating ListOffset request {} for broker {} to reset positions", builder,
                 node);
 
+        Timer timer = time.timer(requestTimeoutMs);
         NetworkClientDelegate.UnsentRequest unsentRequest = new NetworkClientDelegate.UnsentRequest(
                 builder,
-                Optional.ofNullable(node));
+                Optional.ofNullable(node),
+                timer);
         unsentRequests.add(unsentRequest);
         CompletableFuture<ListOffsetResult> result = new CompletableFuture<>();
         unsentRequest.whenComplete((response, error) -> {
@@ -520,15 +535,18 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
     private CompletableFuture<OffsetsForLeaderEpochUtils.OffsetForEpochResult> buildOffsetsForLeaderEpochRequestToNode(
             final Node node,
             final Map<TopicPartition, SubscriptionState.FetchPosition> fetchPositions,
-            List<NetworkClientDelegate.UnsentRequest> unsentRequests) {
+            final List<NetworkClientDelegate.UnsentRequest> unsentRequests) {
         AbstractRequest.Builder<OffsetsForLeaderEpochRequest> builder =
                 OffsetsForLeaderEpochUtils.prepareRequest(fetchPositions);
 
         log.debug("Creating OffsetsForLeaderEpoch request request {} to broker {}", builder, node);
 
+        Timer timer = time.timer(requestTimeoutMs);
         NetworkClientDelegate.UnsentRequest unsentRequest = new NetworkClientDelegate.UnsentRequest(
                 builder,
-                Optional.ofNullable(node));
+                Optional.ofNullable(node),
+                timer
+        );
         unsentRequests.add(unsentRequest);
         CompletableFuture<OffsetsForLeaderEpochUtils.OffsetForEpochResult> result = new CompletableFuture<>();
         unsentRequest.whenComplete((response, error) -> {
@@ -553,7 +571,7 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
         return result;
     }
 
-    private static class ListOffsetsRequestState {
+    private static class ListOffsetsRequestState extends TimedRequestState {
 
         private final Map<TopicPartition, Long> timestampsToSearch;
         private final Map<TopicPartition, ListOffsetData> fetchedOffsets;
@@ -563,10 +581,21 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
         final OffsetFetcherUtils offsetFetcherUtils;
         final IsolationLevel isolationLevel;
 
-        private ListOffsetsRequestState(Map<TopicPartition, Long> timestampsToSearch,
+        private ListOffsetsRequestState(final LogContext logContext,
+                                        final long retryBackoffMs,
+                                        final long retryBackoffMaxMs,
+                                        final Timer timer,
+                                        Map<TopicPartition, Long> timestampsToSearch,
                                         boolean requireTimestamps,
                                         OffsetFetcherUtils offsetFetcherUtils,
                                         IsolationLevel isolationLevel) {
+            super(
+                logContext,
+                OffsetsRequestManager.class.getSimpleName(),
+                retryBackoffMs,
+                retryBackoffMaxMs,
+                timer
+            );
             remainingToSearch = new HashMap<>();
             fetchedOffsets = new HashMap<>();
             globalResult = new CompletableFuture<>();
@@ -580,6 +609,17 @@ public class OffsetsRequestManager implements RequestManager, ClusterResourceLis
         private void addPartitionsToRetry(Set<TopicPartition> partitionsToRetry) {
             remainingToSearch.putAll(partitionsToRetry.stream()
                     .collect(Collectors.toMap(tp -> tp, timestampsToSearch::get)));
+        }
+
+        @Override
+        public String toStringBase() {
+            return super.toStringBase() +
+                    ", timestampsToSearch=" + timestampsToSearch +
+                    ", fetchedOffsets=" + fetchedOffsets +
+                    ", remainingToSearch=" + remainingToSearch +
+                    ", globalResult=" + globalResult +
+                    ", requireTimestamps=" + requireTimestamps +
+                    ", isolationLevel=" + isolationLevel;
         }
     }
 

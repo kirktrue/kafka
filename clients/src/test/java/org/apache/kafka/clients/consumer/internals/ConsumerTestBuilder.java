@@ -141,7 +141,7 @@ public class ConsumerTestBuilder implements Closeable {
 
         this.fetchConfig = new FetchConfig(config);
         this.retryBackoffMs = config.getLong(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG);
-        final long requestTimeoutMs = config.getInt(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG);
+        final int requestTimeoutMs = config.getInt(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG);
         this.metrics = createMetrics(config, time);
 
         this.subscriptions = spy(createSubscriptionState(config, logContext));
@@ -169,19 +169,21 @@ public class ConsumerTestBuilder implements Closeable {
                 fetchConfig.isolationLevel,
                 time,
                 retryBackoffMs,
+                DEFAULT_RETRY_BACKOFF_MAX_MS,
                 requestTimeoutMs,
                 apiVersions,
                 networkClientDelegate,
                 backgroundEventHandler,
                 logContext));
 
-        this.topicMetadataRequestManager = spy(new TopicMetadataRequestManager(logContext, config));
+        this.topicMetadataRequestManager = spy(new TopicMetadataRequestManager(logContext, time, config));
 
         if (groupInfo.isPresent()) {
             GroupInformation gi = groupInfo.get();
             CoordinatorRequestManager coordinator = spy(new CoordinatorRequestManager(
                     time,
                     logContext,
+                    requestTimeoutMs,
                     DEFAULT_RETRY_BACKOFF_MS,
                     DEFAULT_RETRY_BACKOFF_MAX_MS,
                     backgroundEventHandler,
@@ -225,6 +227,7 @@ public class ConsumerTestBuilder implements Closeable {
                     gi.heartbeatJitterMs));
             HeartbeatRequestManager heartbeat = spy(new HeartbeatRequestManager(
                     logContext,
+                    time,
                     pollTimer,
                     config,
                     coordinator,
@@ -258,7 +261,8 @@ public class ConsumerTestBuilder implements Closeable {
                 fetchBuffer,
                 metricsManager,
                 networkClientDelegate,
-                apiVersions));
+                apiVersions,
+                requestTimeoutMs));
         this.requestManagers = new RequestManagers(logContext,
                 offsetsRequestManager,
                 topicMetadataRequestManager,
@@ -271,7 +275,8 @@ public class ConsumerTestBuilder implements Closeable {
         this.applicationEventProcessor = spy(new ApplicationEventProcessor(
                 logContext,
                 requestManagers,
-                metadata
+                metadata,
+                time
             )
         );
 

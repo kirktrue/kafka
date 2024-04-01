@@ -100,6 +100,7 @@ public class OffsetsRequestManagerTest {
     private static final Node LEADER_2 = new Node(0, "host2", 9092);
     private static final IsolationLevel DEFAULT_ISOLATION_LEVEL = IsolationLevel.READ_COMMITTED;
     private static final int RETRY_BACKOFF_MS = 500;
+    private static final int RETRY_BACKOFF_MAX_MS = 1000;
     private static final int REQUEST_TIMEOUT_MS = 500;
 
     @BeforeEach
@@ -117,6 +118,7 @@ public class OffsetsRequestManagerTest {
                 DEFAULT_ISOLATION_LEVEL,
                 time,
                 RETRY_BACKOFF_MS,
+                RETRY_BACKOFF_MAX_MS,
                 REQUEST_TIMEOUT_MS,
                 apiVersions,
                 mock(NetworkClientDelegate.class),
@@ -133,7 +135,8 @@ public class OffsetsRequestManagerTest {
         mockSuccessfulRequest(Collections.singletonMap(TEST_PARTITION_1, LEADER_1));
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> result = requestManager.fetchOffsets(
                 timestampsToSearch,
-                false);
+                false,
+                time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -149,7 +152,7 @@ public class OffsetsRequestManagerTest {
         // Building list offsets request fails with unknown leader
         mockFailedRequest_MissingLeader();
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture =
-                requestManager.fetchOffsets(timestampsToSearch, false);
+                requestManager.fetchOffsets(timestampsToSearch, false, time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(0, requestManager.requestsToSend());
         assertEquals(1, requestManager.requestsToRetry());
         verify(metadata).requestUpdate(true);
@@ -174,7 +177,8 @@ public class OffsetsRequestManagerTest {
         mockSuccessfulRequest(partitionLeaders);
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> result = requestManager.fetchOffsets(
                 timestampsToSearch,
-                false);
+                false,
+                time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -187,7 +191,8 @@ public class OffsetsRequestManagerTest {
     public void testListOffsetsRequestEmpty() throws ExecutionException, InterruptedException {
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> result = requestManager.fetchOffsets(
                 Collections.emptyMap(),
-                false);
+                false,
+                time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(0, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -211,7 +216,8 @@ public class OffsetsRequestManagerTest {
         mockSuccessfulRequest(Collections.singletonMap(TEST_PARTITION_1, LEADER_1));
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> result = requestManager.fetchOffsets(
                 timestampsToSearch,
-                false);
+                false,
+                time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -239,7 +245,8 @@ public class OffsetsRequestManagerTest {
         mockFailedRequest_MissingLeader();
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture =
                 requestManager.fetchOffsets(timestampsToSearch,
-                        false);
+                        false,
+                        time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(0, requestManager.requestsToSend());
         assertEquals(1, requestManager.requestsToRetry());
         verify(metadata).requestUpdate(true);
@@ -269,7 +276,8 @@ public class OffsetsRequestManagerTest {
         mockSuccessfulRequest(Collections.singletonMap(TEST_PARTITION_1, LEADER_1));
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture = requestManager.fetchOffsets(
                 timestampsToSearch,
-                false);
+                false,
+                time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -317,7 +325,8 @@ public class OffsetsRequestManagerTest {
         mockSuccessfulRequest(Collections.singletonMap(TEST_PARTITION_1, LEADER_1));
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture = requestManager.fetchOffsets(
                 timestampsToSearch,
-                false);
+                false,
+                time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -354,7 +363,8 @@ public class OffsetsRequestManagerTest {
         mockSuccessfulRequest(partitionLeaders);
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture = requestManager.fetchOffsets(
                 timestampsToSearch,
-                false);
+                false,
+                time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(2, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -408,7 +418,8 @@ public class OffsetsRequestManagerTest {
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture =
                 requestManager.fetchOffsets(
                         timestampsToSearch,
-                        false);
+                        false,
+                        time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -437,7 +448,8 @@ public class OffsetsRequestManagerTest {
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture =
                 requestManager.fetchOffsets(
                         timestampsToSearch,
-                        false);
+                        false,
+                        time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
@@ -469,7 +481,8 @@ public class OffsetsRequestManagerTest {
         CompletableFuture<Map<TopicPartition, OffsetAndTimestamp>> fetchOffsetsFuture =
                 requestManager.fetchOffsets(
                         timestampsToSearch,
-                        false);
+                        false,
+                        time.timer(REQUEST_TIMEOUT_MS));
         assertEquals(1, requestManager.requestsToSend());
         assertEquals(0, requestManager.requestsToRetry());
 
