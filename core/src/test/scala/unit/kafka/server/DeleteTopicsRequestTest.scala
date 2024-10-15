@@ -130,7 +130,7 @@ class DeleteTopicsRequestTest extends BaseRequestTest with Logging {
    * Only run this test against ZK cluster. The KRaft controller doesn't perform operations that have timed out.
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testErrorDeleteTopicRequests(quorum: String): Unit = {
     val timeout = 30000
     val timeoutTopic = "invalid-timeout"
@@ -221,7 +221,7 @@ class DeleteTopicsRequestTest extends BaseRequestTest with Logging {
    * Instead, the request is forwarded.
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "zkMigration"))
+  @ValueSource(strings = Array("fail-fast", "fail-fastMigration"))
   def testNotController(quorum: String): Unit = {
     val request = new DeleteTopicsRequest.Builder(
         new DeleteTopicsRequestData()
@@ -249,7 +249,7 @@ class DeleteTopicsRequestTest extends BaseRequestTest with Logging {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testDeleteTopicsVersions(quorum: String): Unit = {
     // This test assumes that the current valid versions are 0-6 please adjust the test if there are changes.
     assertEquals(0, DeleteTopicsRequestData.LOWEST_SUPPORTED_VERSION)

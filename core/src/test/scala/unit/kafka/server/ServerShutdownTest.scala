@@ -190,7 +190,7 @@ class ServerShutdownTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testCleanShutdownWithZkUnavailable(quorum: String): Unit = {
     shutdownZooKeeper()
     shutdownBroker()
@@ -255,7 +255,7 @@ class ServerShutdownTest extends KafkaServerTestHarness {
   // without waiting for request timeout. Since this involves LeaderAndIsr request, it is
   // ZK-only for now.
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testControllerShutdownDuringSend(quorum: String): Unit = {
     val securityProtocol = SecurityProtocol.PLAINTEXT
     val listenerName = ListenerName.forSecurityProtocol(securityProtocol)

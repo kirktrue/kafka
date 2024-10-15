@@ -192,7 +192,7 @@ class AddPartitionsTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk")) // TODO: add kraft support
+  @ValueSource(strings = Array("fail-fast")) // TODO: add kraft support
   def testReplicaPlacementAllServers(quorum: String): Unit = {
     admin.createPartitions(Collections.singletonMap(topic3, NewPartitions.increaseTo(7))).all().get()
 
@@ -218,7 +218,7 @@ class AddPartitionsTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk")) // TODO: add kraft support
+  @ValueSource(strings = Array("fail-fast")) // TODO: add kraft support
   def testReplicaPlacementPartialServers(quorum: String): Unit = {
     admin.createPartitions(Collections.singletonMap(topic2, NewPartitions.increaseTo(3))).all().get()
 

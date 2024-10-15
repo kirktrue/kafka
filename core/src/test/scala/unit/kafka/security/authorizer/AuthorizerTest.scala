@@ -61,7 +61,6 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
 
   private final val PLAINTEXT = new Endpoint("PLAINTEXT", SecurityProtocol.PLAINTEXT, "127.0.0.1", 9020)
   private final val KRAFT = "kraft"
-  private final val ZK = "zk"
 
 
   private val allowReadAcl = new AccessControlEntry(WILDCARD_PRINCIPAL_STRING, WILDCARD_HOST, READ, ALLOW)
@@ -126,14 +125,14 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAuthorizeThrowsOnNonLiteralResource(quorum: String): Unit = {
     assertThrows(classOf[IllegalArgumentException], () => authorize(authorizer1, requestContext, READ,
       new ResourcePattern(TOPIC, "something", PREFIXED)))
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAuthorizeWithEmptyResourceName(quorum: String): Unit = {
     assertFalse(authorize(authorizer1, requestContext, READ, new ResourcePattern(GROUP, "", LITERAL)))
     addAcls(authorizer1, Set(allowReadAcl), new ResourcePattern(GROUP, WILDCARD_RESOURCE, LITERAL))
@@ -142,16 +141,14 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
 
   // Authorizing the empty resource is not supported because we create a znode with the resource name.
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testEmptyAclThrowsException(quorum: String): Unit = {
     val e = assertThrows(classOf[ApiException],
       () => addAcls(authorizer1, Set(allowReadAcl), new ResourcePattern(GROUP, "", LITERAL)))
-    if (quorum.equals(ZK))
-      assertTrue(e.getCause.isInstanceOf[IllegalArgumentException], s"Unexpected exception $e")
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testTopicAcl(quorum: String): Unit = {
     val user1 = new KafkaPrincipal(KafkaPrincipal.USER_TYPE, username)
     val user2 = new KafkaPrincipal(KafkaPrincipal.USER_TYPE, "rob")
@@ -207,7 +204,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
     CustomPrincipals should be compared with their principal type and name
    */
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAllowAccessWithCustomPrincipal(quorum: String): Unit = {
     val user = new KafkaPrincipal(KafkaPrincipal.USER_TYPE, username)
     val customUserPrincipal = new CustomPrincipal(KafkaPrincipal.USER_TYPE, username)
@@ -228,7 +225,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testDenyTakesPrecedence(quorum: String): Unit = {
     val user = new KafkaPrincipal(KafkaPrincipal.USER_TYPE, username)
     val host = InetAddress.getByName("192.168.2.1")
@@ -244,7 +241,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAllowAllAccess(quorum: String): Unit = {
     val allowAllAcl = new AccessControlEntry(WILDCARD_PRINCIPAL_STRING, WILDCARD_HOST, AclOperation.ALL, ALLOW)
 
@@ -255,7 +252,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testSuperUserHasAccess(quorum: String): Unit = {
     val denyAllAcl = new AccessControlEntry(WILDCARD_PRINCIPAL_STRING, WILDCARD_HOST, AclOperation.ALL, DENY)
 
@@ -272,7 +269,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
     CustomPrincipals should be compared with their principal type and name
    */
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testSuperUserWithCustomPrincipalHasAccess(quorum: String): Unit = {
     val denyAllAcl = new AccessControlEntry(WILDCARD_PRINCIPAL_STRING, WILDCARD_HOST, AclOperation.ALL, DENY)
     changeAclAndVerify(Set.empty, Set(denyAllAcl), Set.empty)
@@ -283,7 +280,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testWildCardAcls(quorum: String): Unit = {
     assertFalse(authorize(authorizer1, requestContext, READ, resource), "when acls = [], authorizer should fail close.")
 
@@ -308,13 +305,13 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testNoAclFound(quorum: String): Unit = {
     assertFalse(authorize(authorizer1, requestContext, READ, resource), "when acls = [], authorizer should deny op.")
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testNoAclFoundOverride(quorum: String): Unit = {
     val props = properties
     props.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp, "true")
@@ -331,7 +328,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAclConfigWithWhitespace(quorum: String): Unit = {
     val props = properties
     props.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp, " true")
@@ -349,7 +346,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAclManagementAPIs(quorum: String): Unit = {
     val user1 = new KafkaPrincipal(KafkaPrincipal.USER_TYPE, username)
     val user2 = new KafkaPrincipal(KafkaPrincipal.USER_TYPE, "bob")
@@ -392,16 +389,10 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
     //test remove all acls for resource
     removeAcls(authorizer1, Set.empty, resource)
     TestUtils.waitAndVerifyAcls(Set.empty[AccessControlEntry], authorizer1, resource)
-    if (quorum.equals(ZK)) {
-      assertFalse(zkClient.resourceExists(resource))
-    }
 
     //test removing last acl also deletes ZooKeeper path
     acls = changeAclAndVerify(Set.empty, Set(acl1), Set.empty)
     changeAclAndVerify(acls, Set.empty, acls)
-    if (quorum.equals(ZK)) {
-      assertFalse(zkClient.resourceExists(resource))
-    }
   }
 
   @Test
@@ -546,7 +537,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
     * Test ACL inheritance, as described in #{org.apache.kafka.common.acl.AclOperation}
     */
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAclInheritance(quorum: String): Unit = {
     testImplicationsOfAllow(AclOperation.ALL, Set(READ, WRITE, CREATE, DELETE, ALTER, DESCRIBE,
       CLUSTER_ACTION, DESCRIBE_CONFIGS, ALTER_CONFIGS, IDEMPOTENT_WRITE, CREATE_TOKENS, DESCRIBE_TOKENS))
@@ -613,7 +604,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAccessAllowedIfAllowAclExistsOnWildcardResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl), wildCardResource)
 
@@ -621,7 +612,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testDeleteAclOnWildcardResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl, allowWriteAcl), wildCardResource)
 
@@ -631,7 +622,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testDeleteAllAclOnWildcardResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl), wildCardResource)
 
@@ -641,7 +632,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAccessAllowedIfAllowAclExistsOnPrefixedResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl), prefixedResource)
 
@@ -649,7 +640,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testDeleteAclOnPrefixedResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl, allowWriteAcl), prefixedResource)
 
@@ -659,7 +650,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testDeleteAllAclOnPrefixedResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl, allowWriteAcl), prefixedResource)
 
@@ -669,7 +660,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAddAclsOnLiteralResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl, allowWriteAcl), resource)
     addAcls(authorizer1, Set(allowWriteAcl, denyReadAcl), resource)
@@ -680,7 +671,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAddAclsOnWildcardResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl, allowWriteAcl), wildCardResource)
     addAcls(authorizer1, Set(allowWriteAcl, denyReadAcl), wildCardResource)
@@ -691,7 +682,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAddAclsOnPrefixedResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl, allowWriteAcl), prefixedResource)
     addAcls(authorizer1, Set(allowWriteAcl, denyReadAcl), prefixedResource)
@@ -702,7 +693,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAuthorizeWithPrefixedResource(quorum: String): Unit = {
     addAcls(authorizer1, Set(denyReadAcl), new ResourcePattern(TOPIC, "a_other", LITERAL))
     addAcls(authorizer1, Set(denyReadAcl), new ResourcePattern(TOPIC, "a_other", PREFIXED))
@@ -723,7 +714,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testSingleCharacterResourceAcls(quorum: String): Unit = {
     addAcls(authorizer1, Set(allowReadAcl), new ResourcePattern(TOPIC, "f", LITERAL))
     assertTrue(authorize(authorizer1, requestContext, READ, new ResourcePattern(TOPIC, "f", LITERAL)))
@@ -736,7 +727,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testGetAclsPrincipal(quorum: String): Unit = {
     val aclOnSpecificPrincipal = new AccessControlEntry(principal.toString, WILDCARD_HOST, WRITE, ALLOW)
     addAcls(authorizer1, Set(aclOnSpecificPrincipal), resource)
@@ -757,7 +748,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAclsFilter(quorum: String): Unit = {
     val resource1 = new ResourcePattern(TOPIC, "foo-" + UUID.randomUUID(), LITERAL)
     val resource2 = new ResourcePattern(TOPIC, "bar-" + UUID.randomUUID(), LITERAL)
@@ -786,13 +777,9 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
     }
     assertEquals(Set(acl3, acl4), deleteResults(0).aclBindingDeleteResults.asScala.map(_.aclBinding).toSet)
     assertEquals(Set(acl1), deleteResults(1).aclBindingDeleteResults.asScala.map(_.aclBinding).toSet)
-    if (quorum.equals(ZK)) {
-      assertEquals(Set.empty, deleteResults(2).aclBindingDeleteResults.asScala.map(_.aclBinding).toSet)
-    } else {
-      // standard authorizer first finds the acls that match filters and then delete them.
-      // So filters[2] will match acl3 even though it is also matching filters[0] and will be deleted by it
-      assertEquals(Set(acl3), deleteResults(2).aclBindingDeleteResults.asScala.map(_.aclBinding).toSet)
-    }
+    // standard authorizer first finds the acls that match filters and then delete them.
+    // So filters[2] will match acl3 even though it is also matching filters[0] and will be deleted by it
+    assertEquals(Set(acl3), deleteResults(2).aclBindingDeleteResults.asScala.map(_.aclBinding).toSet)
     assertEquals(Set.empty, deleteResults(3).aclBindingDeleteResults.asScala.map(_.aclBinding).toSet)
   }
 
@@ -1067,7 +1054,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array(KRAFT, ZK))
+  @ValueSource(strings = Array(KRAFT))
   def testAuthorizeByResourceTypeNoAclFoundOverride(quorum: String): Unit = {
     val props = properties
     props.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp, "true")

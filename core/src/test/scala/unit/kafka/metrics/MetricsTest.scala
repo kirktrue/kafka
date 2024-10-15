@@ -214,7 +214,7 @@ class MetricsTest extends KafkaServerTestHarness with Logging {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testZkControllerMetrics(quorum: String): Unit = {
     val metrics = KafkaYammerMetrics.defaultRegistry.allMetrics
 

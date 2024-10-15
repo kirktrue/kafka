@@ -74,7 +74,7 @@ class ListOffsetsIntegrationTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testListVersion0(quorum: String): Unit = {
     // create records for version 0
     createMessageFormatBrokers(RecordBatch.MAGIC_VALUE_V0)
@@ -131,7 +131,7 @@ class ListOffsetsIntegrationTest extends KafkaServerTestHarness {
 
   // The message conversion test only run in ZK mode because KRaft mode doesn't support "inter.broker.protocol.version" < 3.0
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testThreeRecordsInOneBatchWithMessageConversion(quorum: String): Unit = {
     createMessageFormatBrokers(RecordBatch.MAGIC_VALUE_V1)
     produceMessagesInOneBatch()
@@ -147,7 +147,7 @@ class ListOffsetsIntegrationTest extends KafkaServerTestHarness {
 
   // The message conversion test only run in ZK mode because KRaft mode doesn't support "inter.broker.protocol.version" < 3.0
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testThreeRecordsInSeparateBatchWithMessageConversion(quorum: String): Unit = {
     createMessageFormatBrokers(RecordBatch.MAGIC_VALUE_V1)
     produceMessagesInSeparateBatch()

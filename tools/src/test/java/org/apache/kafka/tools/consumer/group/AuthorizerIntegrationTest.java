@@ -33,7 +33,7 @@ import static org.apache.kafka.common.acl.AclPermissionType.ALLOW;
 public class AuthorizerIntegrationTest extends AbstractAuthorizerIntegrationTest {
     @SuppressWarnings({"deprecation"})
     @ParameterizedTest
-    @ValueSource(strings = {"zk", "kraft"})
+    @ValueSource(strings = {"kraft"})
     public void testDescribeGroupCliWithGroupDescribe(String quorum) throws Exception {
         addAndVerifyAcls(JavaConverters.asScalaSet(Collections.singleton(new AccessControlEntry(ClientPrincipal().toString(), "*", DESCRIBE, ALLOW))).toSet(), groupResource());
 

@@ -206,7 +206,7 @@ object AddPartitionsToTxnRequestServerTest {
    def parameters: JStream[Arguments] = {
     val arguments = mutable.ListBuffer[Arguments]()
     ApiKeys.ADD_PARTITIONS_TO_TXN.allVersions().forEach { version =>
-      Array("kraft", "zk").foreach { quorum =>
+      Array("kraft").foreach { quorum =>
         arguments += Arguments.of(quorum, version)
       }
     }

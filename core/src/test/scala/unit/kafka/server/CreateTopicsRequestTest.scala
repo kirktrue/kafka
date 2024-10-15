@@ -104,7 +104,7 @@ class CreateTopicsRequestTest extends AbstractCreateTopicsRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testCreateTopicsWithVeryShortTimeouts(quorum: String): Unit = {
     // When using ZooKeeper, we don't expect a request to ever complete within 1ms.
     // A timeout of 1 ms allows us to test the purgatory timeout logic.
@@ -149,7 +149,7 @@ class CreateTopicsRequestTest extends AbstractCreateTopicsRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "zkMigration"))
+  @ValueSource(strings = Array("fail-fast", "fail-fastMigration"))
   def testNotController(quorum: String): Unit = {
     // Note: we don't run this test when in KRaft mode, because KRaft doesn't have this
     // behavior of returning NOT_CONTROLLER. Instead, the request is forwarded.
@@ -160,7 +160,7 @@ class CreateTopicsRequestTest extends AbstractCreateTopicsRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testCreateTopicsRequestVersions(quorum: String): Unit = {
     // Note: we don't run this test when in KRaft mode, because kraft does not yet support returning topic
     // configs from CreateTopics.

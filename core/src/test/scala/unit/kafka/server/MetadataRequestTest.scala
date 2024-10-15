@@ -61,7 +61,7 @@ class MetadataRequestTest extends AbstractMetadataRequestTest {
    * the client is randomized.
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testControllerId(quorum: String): Unit = {
     val controllerServer = servers.find(_.kafkaController.isActive).get
     val controllerId = controllerServer.config.brokerId
@@ -181,7 +181,7 @@ class MetadataRequestTest extends AbstractMetadataRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testAutoCreateOfCollidingTopics(quorum: String): Unit = {
     val topic1 = "testAutoCreate.Topic"
     val topic2 = "testAutoCreate_Topic"

@@ -152,7 +152,7 @@ class DynamicConfigChangeTest extends KafkaServerTestHarness {
 
   @nowarn("cat=deprecation")
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testMessageFormatVersionChange(quorum: String): Unit = {
     val tp = new TopicPartition("test", 0)
     val logProps = new Properties()
@@ -281,7 +281,7 @@ class DynamicConfigChangeTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testQuotaInitialization(quorum: String): Unit = {
     val server = servers.head
     val clientIdProps = new Properties()
@@ -395,7 +395,7 @@ class DynamicConfigChangeTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testConfigChangeOnNonExistingTopic(quorum: String): Unit = {
     val topic = tempTopic()
     val logProps = new Properties()
@@ -424,7 +424,7 @@ class DynamicConfigChangeTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testProcessNotification(quorum: String): Unit = {
     val props = new Properties()
     props.put("a.b", "10")

@@ -445,7 +445,7 @@ class RemoteTopicCrudTest extends IntegrationTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk"))
+  @ValueSource(strings = Array("fail-fast"))
   def testUpdateInvalidRemoteStorageConfigUnderZK(quorum: String): Unit = {
     val admin = createAdminClient()
     val errorMsg = "It is invalid to set `remote.log.delete.on.disable` or `remote.log.copy.disable` under Zookeeper's mode."
