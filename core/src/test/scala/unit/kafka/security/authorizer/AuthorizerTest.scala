@@ -143,7 +143,7 @@ class AuthorizerTest extends QuorumTestHarness with BaseAuthorizerTest {
   @ParameterizedTest
   @ValueSource(strings = Array(KRAFT))
   def testEmptyAclThrowsException(quorum: String): Unit = {
-    val e = assertThrows(classOf[ApiException],
+    assertThrows(classOf[ApiException],
       () => addAcls(authorizer1, Set(allowReadAcl), new ResourcePattern(GROUP, "", LITERAL)))
   }
 
