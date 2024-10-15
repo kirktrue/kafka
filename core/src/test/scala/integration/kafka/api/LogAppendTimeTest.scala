@@ -50,7 +50,7 @@ class LogAppendTimeTest extends IntegrationTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testProduceConsume(quorum: String): Unit = {
     val producer = createProducer()
     val now = System.currentTimeMillis()

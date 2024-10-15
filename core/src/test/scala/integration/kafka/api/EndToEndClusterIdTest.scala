@@ -117,7 +117,7 @@ class EndToEndClusterIdTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testEndToEnd(quorum: String): Unit = {
     val appendStr = "mock"
     MockConsumerInterceptor.resetCounters()

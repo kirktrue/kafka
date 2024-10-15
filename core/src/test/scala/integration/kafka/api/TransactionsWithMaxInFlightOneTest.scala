@@ -73,7 +73,7 @@ class TransactionsWithMaxInFlightOneTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testTransactionalProducerSingleBrokerMaxInFlightOne(quorum: String): Unit = {
     // We want to test with one broker to verify multiple requests queued on a connection
     assertEquals(1, brokers.size)

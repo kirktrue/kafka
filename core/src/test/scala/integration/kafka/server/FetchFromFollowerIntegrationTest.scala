@@ -57,7 +57,7 @@ class FetchFromFollowerIntegrationTest extends BaseFetchRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   @Timeout(15)
   def testFollowerCompleteDelayedFetchesOnReplication(quorum: String): Unit = {
     // Create a topic with 2 replicas where broker 0 is the leader and 1 is the follower.
@@ -102,7 +102,7 @@ class FetchFromFollowerIntegrationTest extends BaseFetchRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testFetchFromLeaderWhilePreferredReadReplicaIsUnavailable(quorum: String): Unit = {
     // Create a topic with 2 replicas where broker 0 is the leader and 1 is the follower.
     val admin = createAdminClient()
@@ -130,7 +130,7 @@ class FetchFromFollowerIntegrationTest extends BaseFetchRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testFetchFromFollowerWithRoll(quorum: String): Unit = {
     // Create a topic with 2 replicas where broker 0 is the leader and 1 is the follower.
     val admin = createAdminClient()
@@ -182,7 +182,7 @@ class FetchFromFollowerIntegrationTest extends BaseFetchRequestTest {
 
   @Disabled
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testRackAwareRangeAssignor(quorum: String): Unit = {
     val partitionList = brokers.indices.toList
 

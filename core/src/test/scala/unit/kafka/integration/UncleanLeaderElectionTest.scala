@@ -120,7 +120,7 @@ class UncleanLeaderElectionTest extends QuorumTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testUncleanLeaderElectionEnabled(quorum: String): Unit = {
     // enable unclean leader election
     configProps1.put("unclean.leader.election.enable", "true")
@@ -133,7 +133,7 @@ class UncleanLeaderElectionTest extends QuorumTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testUncleanLeaderElectionDisabled(quorum: String): Unit = {
     // unclean leader election is disabled by default
     startBrokers(Seq(configProps1, configProps2))
@@ -145,7 +145,7 @@ class UncleanLeaderElectionTest extends QuorumTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testUncleanLeaderElectionEnabledByTopicOverride(quorum: String): Unit = {
     // disable unclean leader election globally, but enable for our specific test topic
     configProps1.put("unclean.leader.election.enable", "false")
@@ -161,7 +161,7 @@ class UncleanLeaderElectionTest extends QuorumTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testUncleanLeaderElectionDisabledByTopicOverride(quorum: String): Unit = {
     // enable unclean leader election globally, but disable for our specific test topic
     configProps1.put("unclean.leader.election.enable", "true")
@@ -177,7 +177,7 @@ class UncleanLeaderElectionTest extends QuorumTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testUncleanLeaderElectionInvalidTopicOverride(quorum: String): Unit = {
     startBrokers(Seq(configProps1))
 
@@ -323,7 +323,7 @@ class UncleanLeaderElectionTest extends QuorumTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testTopicUncleanLeaderElectionEnableWithAlterTopicConfigs(quorum: String): Unit = {
     // unclean leader election is disabled by default
     startBrokers(Seq(configProps1, configProps2))

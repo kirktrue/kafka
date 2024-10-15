@@ -75,7 +75,7 @@ class SaslScramSslEndToEndAuthorizationTest extends SaslEndToEndAuthorizationTes
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("kraft", "zk"))
+  @ValueSource(strings = Array("kraft"))
   def testAuthentications(quorum: String): Unit = {
     val successfulAuths = TestUtils.totalMetricValue(brokers.head, "successful-authentication-total")
     assertTrue(successfulAuths > 0, "No successful authentications")

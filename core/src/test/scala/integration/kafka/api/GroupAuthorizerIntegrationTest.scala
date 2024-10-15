@@ -117,7 +117,7 @@ class GroupAuthorizerIntegrationTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testUnauthorizedProduceAndConsume(quorum: String): Unit = {
     val topic = "topic"
     val topicPartition = new TopicPartition("topic", 0)
@@ -138,7 +138,7 @@ class GroupAuthorizerIntegrationTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testAuthorizedProduceAndConsume(quorum: String): Unit = {
     val topic = "topic"
     val topicPartition = new TopicPartition("topic", 0)

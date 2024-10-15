@@ -58,7 +58,7 @@ class DescribeUserScramCredentialsRequestTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("kraft", "zk"))
+  @ValueSource(strings = Array("kraft"))
   def testDescribeNothing(quorum: String): Unit = {
     val request = new DescribeUserScramCredentialsRequest.Builder(
       new DescribeUserScramCredentialsRequestData()).build()
@@ -70,7 +70,7 @@ class DescribeUserScramCredentialsRequestTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("kraft", "zk"))
+  @ValueSource(strings = Array("kraft"))
   def testDescribeWithNull(quorum: String): Unit = {
     val request = new DescribeUserScramCredentialsRequest.Builder(
       new DescribeUserScramCredentialsRequestData().setUsers(null)).build()
@@ -92,7 +92,7 @@ class DescribeUserScramCredentialsRequestTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("kraft", "zk"))
+  @ValueSource(strings = Array("kraft"))
   def testDescribeSameUserTwice(quorum: String): Unit = {
     val user = "user1"
     val userName = new UserName().setName(user)
@@ -108,7 +108,7 @@ class DescribeUserScramCredentialsRequestTest extends BaseRequestTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("kraft", "zk"))
+  @ValueSource(strings = Array("kraft"))
   def testUnknownUser(quorum: String): Unit = {
     val unknownUser = "unknownUser"
     val request = new DescribeUserScramCredentialsRequest.Builder(

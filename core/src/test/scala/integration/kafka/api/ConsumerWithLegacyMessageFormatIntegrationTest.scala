@@ -40,7 +40,7 @@ class ConsumerWithLegacyMessageFormatIntegrationTest extends AbstractConsumerTes
 
   @nowarn("cat=deprecation")
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testOffsetsForTimes(quorum: String): Unit = {
     val numParts = 2
     val topic1 = "part-test-topic-1"
@@ -117,7 +117,7 @@ class ConsumerWithLegacyMessageFormatIntegrationTest extends AbstractConsumerTes
 
   @nowarn("cat=deprecation")
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testEarliestOrLatestOffsets(quorum: String): Unit = {
     val topic0 = "topicWithNewMessageFormat"
     val topic1 = "topicWithOldMessageFormat"

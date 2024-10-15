@@ -38,7 +38,7 @@ import scala.annotation.nowarn
 class PlaintextProducerSendTest extends BaseProducerSendTest {
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testWrongSerializer(quorum: String): Unit = {
     val producerProps = new Properties()
     producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers())
@@ -50,7 +50,7 @@ class PlaintextProducerSendTest extends BaseProducerSendTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testBatchSizeZero(quorum: String): Unit = {
     val producer = createProducer(
       lingerMs = Int.MaxValue,
@@ -61,7 +61,7 @@ class PlaintextProducerSendTest extends BaseProducerSendTest {
 
   @Timeout(value = 15, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testBatchSizeZeroNoPartitionNoRecordKey(quorum: String): Unit = {
     val producer = createProducer(batchSize = 0)
     val numRecords = 10
@@ -84,7 +84,7 @@ class PlaintextProducerSendTest extends BaseProducerSendTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendCompressedMessageWithLogAppendTime(quorum: String): Unit = {
     val producer = createProducer(
       compressionType = "gzip",
@@ -94,7 +94,7 @@ class PlaintextProducerSendTest extends BaseProducerSendTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendNonCompressedMessageWithLogAppendTime(quorum: String): Unit = {
     val producer = createProducer(lingerMs = Int.MaxValue, deliveryTimeoutMs = Int.MaxValue)
     sendAndVerifyTimestamp(producer, TimestampType.LOG_APPEND_TIME)
@@ -106,7 +106,7 @@ class PlaintextProducerSendTest extends BaseProducerSendTest {
    * The topic should be created upon sending the first message
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testAutoCreateTopic(quorum: String): Unit = {
     val producer = createProducer()
     try {
@@ -195,7 +195,7 @@ class PlaintextProducerSendTest extends BaseProducerSendTest {
   // where requests are failed immediately without blocking if metadata is not available
   // or buffer is full.
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testNonBlockingProducer(quorum: String): Unit = {
 
     def send(producer: KafkaProducer[Array[Byte],Array[Byte]]): Future[RecordMetadata] = {
@@ -251,7 +251,7 @@ class PlaintextProducerSendTest extends BaseProducerSendTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendRecordBatchWithMaxRequestSizeAndHigher(quorum: String): Unit = {
     val producerProps = new Properties()
     producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers())

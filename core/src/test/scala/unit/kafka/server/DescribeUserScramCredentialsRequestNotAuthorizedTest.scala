@@ -44,7 +44,7 @@ class DescribeUserScramCredentialsRequestNotAuthorizedTest extends BaseRequestTe
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testDescribeNotAuthorized(quorum: String): Unit = {
     val request = new DescribeUserScramCredentialsRequest.Builder(
       new DescribeUserScramCredentialsRequestData()).build()

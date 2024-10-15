@@ -80,7 +80,7 @@ class ProducerIdExpirationTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testProducerIdExpirationWithNoTransactions(quorum: String): Unit = {
     producer = TestUtils.createProducer(bootstrapServers(), enableIdempotence = true)
 
@@ -104,7 +104,7 @@ class ProducerIdExpirationTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testTransactionAfterTransactionIdExpiresButProducerIdRemains(quorum: String): Unit = {
     producer = TestUtils.createTransactionalProducer("transactionalProducer", brokers)
     producer.initTransactions()
@@ -152,7 +152,7 @@ class ProducerIdExpirationTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testDynamicProducerIdExpirationMs(quorum: String): Unit = {
     producer = TestUtils.createProducer(bootstrapServers(), enableIdempotence = true)
 

@@ -127,7 +127,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
    * 2. Last message of the non-blocking send should return the correct offset metadata
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendOffset(quorum: String): Unit = {
     val producer = createProducer()
     val partition = 0
@@ -189,7 +189,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendCompressedMessageWithCreateTime(quorum: String): Unit = {
     val producer = createProducer(
       compressionType = "gzip",
@@ -199,7 +199,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendNonCompressedMessageWithCreateTime(quorum: String): Unit = {
     val producer = createProducer(lingerMs = Int.MaxValue, deliveryTimeoutMs = Int.MaxValue)
     sendAndVerifyTimestamp(producer, TimestampType.CREATE_TIME)
@@ -292,7 +292,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
    * After close() returns, all messages should be sent with correct returned offset metadata
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testClose(quorum: String): Unit = {
     val producer = createProducer()
 
@@ -326,7 +326,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
    * The specified partition-id should be respected
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendToPartition(quorum: String): Unit = {
     val producer = createProducer()
 
@@ -366,7 +366,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendToPartitionWithFollowerShutdownShouldNotTimeout(quorum: String): Unit = {
     // This test produces to a leader that has follower that is shutting down. It shows that
     // the produce request succeed, do not timeout and do not need to be retried.
@@ -419,7 +419,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
     * succeed as long as the partition is included in the metadata.
     */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testSendBeforeAndAfterPartitionExpansion(quorum: String): Unit = {
     val producer = createProducer(maxBlockMs = 5 * 1000L)
 
@@ -477,7 +477,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
    * Test that flush immediately sends all accumulated requests.
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testFlush(quorum: String): Unit = {
     val producer = createProducer(lingerMs = Int.MaxValue, deliveryTimeoutMs = Int.MaxValue)
     try {
@@ -499,7 +499,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
    * Test close with zero timeout from caller thread
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testCloseWithZeroTimeoutFromCallerThread(quorum: String): Unit = {
     TestUtils.createTopicWithAdmin(admin, topic, brokers, controllerServers, 2, 2)
     val partition = 0
@@ -525,7 +525,7 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
    * Test close with zero and non-zero timeout from sender thread
    */
   @ParameterizedTest
-  @ValueSource(strings = Array("zk", "kraft"))
+  @ValueSource(strings = Array("kraft"))
   def testCloseWithZeroTimeoutFromSenderThread(quorum: String): Unit = {
     TestUtils.createTopicWithAdmin(admin, topic, brokers, controllerServers, 1, 2)
     val partition = 0
