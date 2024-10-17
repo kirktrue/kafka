@@ -408,6 +408,7 @@ public class StreamThread extends Thread implements ProcessingThread {
             time,
             clientSupplier,
             threadId,
+            threadIdx,
             processId,
             log,
             stateUpdaterEnabled,
@@ -811,7 +812,7 @@ public class StreamThread extends Thread implements ProcessingThread {
                 if (fetchDeadlineClientInstanceId >= time.milliseconds()) {
                     try {
                         threadProducerInstanceIdFuture.complete(
-                            taskManager.threadProducer().kafkaProducer().clientInstanceId(Duration.ZERO)
+                            taskManager.streamsProducer().kafkaProducer().clientInstanceId(Duration.ZERO)
                         );
                     } catch (final IllegalStateException disabledError) {
                         // if telemetry is disabled on a client, we swallow the error,

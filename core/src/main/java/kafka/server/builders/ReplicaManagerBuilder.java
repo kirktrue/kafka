@@ -21,6 +21,7 @@ import kafka.log.LogManager;
 import kafka.log.remote.RemoteLogManager;
 import kafka.server.AddPartitionsToTxnManager;
 import kafka.server.AlterPartitionManager;
+import kafka.server.DelayedActionQueue;
 import kafka.server.DelayedDeleteRecords;
 import kafka.server.DelayedElectLeader;
 import kafka.server.DelayedFetch;
@@ -45,7 +46,8 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import scala.compat.java8.OptionConverters;
+import scala.jdk.javaapi.OptionConverters;
+
 
 
 public class ReplicaManagerBuilder {
@@ -216,6 +218,7 @@ public class ReplicaManagerBuilder {
                              OptionConverters.toScala(threadNamePrefix),
                              () -> brokerEpoch,
                              OptionConverters.toScala(addPartitionsToTxnManager),
-                             directoryEventHandler);
+                             directoryEventHandler,
+                             new DelayedActionQueue());
     }
 }

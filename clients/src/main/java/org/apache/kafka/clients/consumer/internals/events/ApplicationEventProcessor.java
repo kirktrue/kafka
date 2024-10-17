@@ -34,6 +34,7 @@ import org.apache.kafka.common.utils.LogContext;
 
 import org.slf4j.Logger;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +100,10 @@ public class ApplicationEventProcessor implements EventProcessor<ApplicationEven
                 process((ListOffsetsEvent) event);
                 return;
 
+            case RESET_OFFSET:
+                process((ResetOffsetEvent) event);
+                return;
+
             case CHECK_AND_UPDATE_POSITIONS:
                 process((CheckAndUpdatePositionsEvent) event);
                 return;
@@ -145,6 +150,10 @@ public class ApplicationEventProcessor implements EventProcessor<ApplicationEven
 
             case SHARE_ACKNOWLEDGE_ON_CLOSE:
                 process((ShareAcknowledgeOnCloseEvent) event);
+                return;
+
+            case SHARE_ACKNOWLEDGEMENT_COMMIT_CALLBACK_REGISTRATION:
+                process((ShareAcknowledgementCommitCallbackRegistrationEvent) event);
                 return;
 
             case SEEK_UNVALIDATED:
@@ -270,6 +279,17 @@ public class ApplicationEventProcessor implements EventProcessor<ApplicationEven
         }
     }
 
+    private void process(final ResetOffsetEvent event) {
+        try {
+            Collection<TopicPartition> parts = event.topicPartitions().isEmpty() ?
+                    subscriptions.assignedPartitions() : event.topicPartitions();
+            subscriptions.requestOffsetReset(parts, event.offsetResetStrategy());
+            event.future().complete(null);
+        } catch (Exception e) {
+            event.future().completeExceptionally(e);
+        }
+    }
+
     /**
      * Check if all assigned partitions have fetch positions. If there are missing positions, fetch offsets and use
      * them to update positions in the subscription state.
@@ -347,12 +367,19 @@ public class ApplicationEventProcessor implements EventProcessor<ApplicationEven
      * consumer join the share group if it is not part of it yet, or send the updated subscription if
      * it is already a member.
      */
-    private void process(final ShareSubscriptionChangeEvent ignored) {
+    private void process(final ShareSubscriptionChangeEvent event) {
         if (!requestManagers.shareHeartbeatRequestManager.isPresent()) {
-            log.warn("Group membership manager not present when processing a subscribe event");
+            KafkaException error = new KafkaException("Group membership manager not present when processing a subscribe event");
+            event.future().completeExceptionally(error);
             return;
         }
+
+        if (subscriptions.subscribeToShareGroup(event.topics()))
+            metadata.requestUpdateForNewTopics();
+
         requestManagers.shareHeartbeatRequestManager.get().membershipManager().onSubscriptionUpdated();
+
+        event.future().complete(null);
     }
 
     /**
@@ -369,6 +396,9 @@ public class ApplicationEventProcessor implements EventProcessor<ApplicationEven
             event.future().completeExceptionally(error);
             return;
         }
+
+        subscriptions.unsubscribe();
+
         CompletableFuture<Void> future = requestManagers.shareHeartbeatRequestManager.get().membershipManager().leaveGroup();
         // The future will be completed on heartbeat sent
         future.whenComplete(complete(event.future()));
@@ -391,6 +421,20 @@ public class ApplicationEventProcessor implements EventProcessor<ApplicationEven
         ShareConsumeRequestManager manager = requestManagers.shareConsumeRequestManager.get();
         CompletableFuture<Void> future = manager.acknowledgeOnClose(event.acknowledgementsMap(), event.deadlineMs());
         future.whenComplete(complete(event.future()));
+    }
+
+    /**
+     * Process event indicating whether the AcknowledgeCommitCallbackHandler is configured by the user.
+     *
+     * @param event Event containing a boolean to indicate if the callback handler is configured or not.
+     */
+    private void process(final ShareAcknowledgementCommitCallbackRegistrationEvent event) {
+        if (!requestManagers.shareConsumeRequestManager.isPresent()) {
+            return;
+        }
+
+        ShareConsumeRequestManager manager = requestManagers.shareConsumeRequestManager.get();
+        manager.setAcknowledgementCommitCallbackRegistered(event.isCallbackRegistered());
     }
 
     private <T> BiConsumer<? super T, ? super Throwable> complete(final CompletableFuture<T> b) {
