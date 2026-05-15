@@ -1022,9 +1022,17 @@ private[kafka] class Processor(
                 expiredConnectionsKilledCount.record(null, 1, 0)
               } else {
                 val connectionId = receive.source
+
+                // For KIP-1313, register the client instance ID seen on the first v2 header request on this
+                // channel. Subsequent v2 header requests are validated in KafkaApis.handle().
+                if (header.headerVersion >= 2 && !channel.channelMetadataRegistry.wasClientInstanceIdRegistered) {
+                  channel.channelMetadataRegistry.registerClientInstanceId(
+                    Optional.ofNullable(header.clientInstanceId))
+                }
+
                 val context = new RequestContext(header, connectionId, channel.socketAddress, Optional.of(channel.socketPort()),
                   channel.principal, listenerName, securityProtocol, channel.channelMetadataRegistry.clientInformation,
-                  isPrivilegedListener, channel.principalSerde)
+                  isPrivilegedListener, channel.principalSerde, channel.channelMetadataRegistry.clientInstanceId)
 
                 req = new RequestChannel.Request(processor = id, context = context,
                   startTimeNanos = nowNanos, memoryPool, receive.payload, requestChannel.metrics, None)

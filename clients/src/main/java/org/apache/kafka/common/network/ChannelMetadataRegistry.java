@@ -16,7 +16,10 @@
  */
 package org.apache.kafka.common.network;
 
+import org.apache.kafka.common.Uuid;
+
 import java.io.Closeable;
+import java.util.Optional;
 
 /**
  * Metadata about a channel is provided in various places in the network stack. This
@@ -47,6 +50,32 @@ public interface ChannelMetadataRegistry extends Closeable {
      * Get the currently registered client information.
      */
     ClientInformation clientInformation();
+
+    /**
+     * For KIP-1313, register the first client instance ID that is seen on the first v2 header request
+     * on this channel. The value reflects what the client placed in the request header, either:
+     *
+     * <ul>
+     *   <li>{@code Optional.of(uuid)} when the client supplied an ID</li>
+     *   <li>{@code Optional.empty()} when the client did not supply an ID</li>
+     * </ul>
+     *
+     * Subsequent v2 header requests are validated in KafkaApis.handle().
+     */
+    void registerClientInstanceId(Optional<Uuid> clientInstanceId);
+
+    /**
+     * Returns the registered client instance ID. Returns an empty {@code Optional} either when
+     * no v2 header  request has been seen yet, or when the first seen v2 header request had no
+     * client instance ID.
+     */
+    Optional<Uuid> clientInstanceId();
+
+    /**
+     * For KIP-1313, determines whether {@link #registerClientInstanceId(Optional)} has been invoked
+     * on this channel.
+     */
+    boolean wasClientInstanceIdRegistered();
 
     /**
      * Unregister everything that has been registered and close the registry.

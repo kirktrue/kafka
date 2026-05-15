@@ -23,6 +23,7 @@
   // Version 1 is the first version with ClientId.
   //
   // Version 2 is the first flexible version.
+  // Tagged field 0 introduces ClientInstanceId. (KIP-1313)
   "validVersions": "1-2",
   "flexibleVersions": "2+",
   "fields": [
@@ -39,6 +40,8 @@
     // Since the client is sending the ApiVersionsRequest in order to discover what
     // versions are supported, the client does not know the best version to use.
     { "name": "ClientId", "type": "string", "versions": "1+", "nullableVersions": "1+", "flexibleVersions": "none",
-      "about": "The client ID string." }
+      "about": "The client ID string." },
+    { "name": "ClientInstanceId", "type": "uuid", "versions": "2+", "taggedVersions": "2+", "tag": 0, "ignorable": true,
+      "about": "The client instance ID, for identifying an instance of an application." }
   ]
 }

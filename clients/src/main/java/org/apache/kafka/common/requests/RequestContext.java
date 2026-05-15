@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.common.requests;
 
+import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.errors.InvalidRequestException;
 import org.apache.kafka.common.message.ApiVersionsRequestData;
 import org.apache.kafka.common.network.ClientInformation;
@@ -45,6 +46,13 @@ public class RequestContext implements AuthorizableRequestContext {
     public final ClientInformation clientInformation;
     public final boolean fromPrivilegedListener;
     public final Optional<KafkaPrincipalSerde> principalSerde;
+    /**
+     * KIP-1313: snapshot of the client instance ID registered for this connection at the time this
+     * request was received. Empty either because no v2-header request has been seen yet on the
+     * channel, or because the first v2-header request omitted the client instance ID. Used by
+     * {@code KafkaApis} to enforce per-connection consistency against {@link RequestHeader#clientInstanceId()}.
+     */
+    public final Optional<Uuid> firstSeenClientInstanceId;
 
     public RequestContext(RequestHeader header,
                           String connectionId,
@@ -63,6 +71,7 @@ public class RequestContext implements AuthorizableRequestContext {
             securityProtocol,
             clientInformation,
             fromPrivilegedListener,
+            Optional.empty(),
             Optional.empty());
     }
 
@@ -84,6 +93,7 @@ public class RequestContext implements AuthorizableRequestContext {
             securityProtocol,
             clientInformation,
             fromPrivilegedListener,
+            Optional.empty(),
             Optional.empty());
     }
 
@@ -97,6 +107,30 @@ public class RequestContext implements AuthorizableRequestContext {
                           ClientInformation clientInformation,
                           boolean fromPrivilegedListener,
                           Optional<KafkaPrincipalSerde> principalSerde) {
+        this(header,
+            connectionId,
+            clientAddress,
+            clientPort,
+            principal,
+            listenerName,
+            securityProtocol,
+            clientInformation,
+            fromPrivilegedListener,
+            principalSerde,
+            Optional.empty());
+    }
+
+    public RequestContext(RequestHeader header,
+                          String connectionId,
+                          InetAddress clientAddress,
+                          Optional<Integer> clientPort,
+                          KafkaPrincipal principal,
+                          ListenerName listenerName,
+                          SecurityProtocol securityProtocol,
+                          ClientInformation clientInformation,
+                          boolean fromPrivilegedListener,
+                          Optional<KafkaPrincipalSerde> principalSerde,
+                          Optional<Uuid> firstSeenClientInstanceId) {
         this.header = header;
         this.connectionId = connectionId;
         this.clientAddress = clientAddress;
@@ -107,6 +141,7 @@ public class RequestContext implements AuthorizableRequestContext {
         this.clientInformation = clientInformation;
         this.fromPrivilegedListener = fromPrivilegedListener;
         this.principalSerde = principalSerde;
+        this.firstSeenClientInstanceId = firstSeenClientInstanceId;
     }
 
     public RequestAndSize parseRequest(ByteBuffer buffer) {
@@ -218,6 +253,7 @@ public class RequestContext implements AuthorizableRequestContext {
             ", clientInformation=" + clientInformation +
             ", fromPrivilegedListener=" + fromPrivilegedListener +
             ", principalSerde=" + principalSerde +
+            ", firstSeenClientInstanceId=" + firstSeenClientInstanceId +
             ')';
     }
 }

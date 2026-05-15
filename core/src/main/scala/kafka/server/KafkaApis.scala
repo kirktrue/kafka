@@ -167,6 +167,21 @@ class KafkaApis(val requestChannel: RequestChannel,
         throw new IllegalStateException(s"API ${request.header.apiKey} with version ${request.header.apiVersion} is not enabled")
       }
 
+      // For KIP-1313, make sure of the client instance ID consistency across all v2 header requests for
+      // the same connection.
+      if (request.header.headerVersion >= 2) {
+        val fromRequestHeader: Uuid = request.header.clientInstanceId
+        val firstSeen: Uuid = request.context.firstSeenClientInstanceId.orElse(null)
+
+        if (firstSeen != fromRequestHeader) {
+          requestHelper.sendErrorResponseMaybeThrottle(request,
+            Errors.INVALID_REQUEST.exception(
+              s"Inconsistent ClientInstanceId across requests on connection ${request.context.connectionId}: " +
+                s"first seen=$firstSeen, current=$fromRequestHeader"))
+          return
+        }
+      }
+
       request.header.apiKey match {
         case ApiKeys.PRODUCE => handleProduceRequest(request, requestLocal)
         case ApiKeys.FETCH => handleFetchRequest(request)

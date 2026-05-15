@@ -67,7 +67,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -160,9 +159,22 @@ public class ClientMetricsManager implements AutoCloseable {
         GetTelemetrySubscriptionsRequest request, RequestContext requestContext) {
 
         long now = time.milliseconds();
-        Uuid clientInstanceId = Optional.ofNullable(request.data().clientInstanceId())
-            .filter(id -> !id.equals(Uuid.ZERO_UUID))
-            .orElse(generateNewClientId());
+
+        // KIP-1313 changes things up a bit regarding the client instance ID creation.
+        //
+        // When the request body doesn't include a ClientInstanceId *and* the request header does,
+        // just echo back the value from the request header value instead of creating a new ID.
+        // Older, pre-KIP-1313 clients will continue to use a broker-generated ID.
+        Uuid fromRequestBody = request.data().clientInstanceId();
+        Uuid fromRequestHeader = requestContext.header.clientInstanceId();
+        final Uuid clientInstanceId;
+
+        if (fromRequestBody != null && !fromRequestBody.equals(Uuid.ZERO_UUID))
+            clientInstanceId = fromRequestBody;
+        else if (fromRequestHeader != null)
+            clientInstanceId = fromRequestHeader;
+        else
+            clientInstanceId = generateNewClientId();
 
         /*
          Get the client instance from the cache or create a new one. If subscription has changed

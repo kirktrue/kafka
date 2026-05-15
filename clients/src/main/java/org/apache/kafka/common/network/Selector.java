@@ -18,6 +18,7 @@ package org.apache.kafka.common.network;
 
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.memory.MemoryPool;
 import org.apache.kafka.common.metrics.Metrics;
@@ -1071,6 +1072,11 @@ public class Selector implements Selectable, AutoCloseable {
         private CipherInformation cipherInformation;
         private ClientInformation clientInformation;
 
+        // KIP-1313 tracks the client instance ID from the first v2 header request seen.
+        // This flag disambiguates *has never been* registered from *has been* registered states.
+        private boolean wasClientInstanceIdRegistered;
+        private Optional<Uuid> clientInstanceId = Optional.empty();
+
         @Override
         public void registerCipherInformation(final CipherInformation cipherInformation) {
             if (this.cipherInformation != null) {
@@ -1106,6 +1112,21 @@ public class Selector implements Selectable, AutoCloseable {
         }
 
         @Override
+        public void registerClientInstanceId(Optional<Uuid> clientInstanceId) {
+            wasClientInstanceIdRegistered = true;
+            this.clientInstanceId = clientInstanceId;
+        }
+
+        @Override
+        public Optional<Uuid> clientInstanceId() {
+            return clientInstanceId;
+        }
+        @Override
+        public boolean wasClientInstanceIdRegistered() {
+            return wasClientInstanceIdRegistered;
+        }
+
+        @Override
         public void close() {
             if (this.cipherInformation != null) {
                 sensors.connectionsByCipher.decrement(this.cipherInformation);
@@ -1116,6 +1137,9 @@ public class Selector implements Selectable, AutoCloseable {
                 sensors.connectionsByClient.decrement(this.clientInformation);
                 this.clientInformation = null;
             }
+
+            wasClientInstanceIdRegistered = false;
+            clientInstanceId = Optional.empty();
         }
     }
 

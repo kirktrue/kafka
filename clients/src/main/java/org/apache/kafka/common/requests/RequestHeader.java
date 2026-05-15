@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.common.requests;
 
+import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.errors.InvalidRequestException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.message.RequestHeaderData;
@@ -36,17 +37,32 @@ public class RequestHeader implements AbstractRequestResponse {
     private int size = SIZE_NOT_INITIALIZED;
 
     public RequestHeader(ApiKeys requestApiKey, short requestVersion, String clientId, int correlationId) {
-        this(new RequestHeaderData().
-                setRequestApiKey(requestApiKey.id).
-                setRequestApiVersion(requestVersion).
-                setClientId(clientId).
-                setCorrelationId(correlationId),
+        this(requestApiKey, requestVersion, clientId, correlationId, null);
+    }
+
+    public RequestHeader(ApiKeys requestApiKey, short requestVersion, String clientId, int correlationId, Uuid clientInstanceId) {
+        this(buildData(requestApiKey, requestVersion, clientId, correlationId, clientInstanceId),
             requestApiKey.requestHeaderVersion(requestVersion));
     }
 
     public RequestHeader(RequestHeaderData data, short headerVersion) {
         this.data = data;
         this.headerVersion = headerVersion;
+    }
+
+    private static RequestHeaderData buildData(ApiKeys requestApiKey, short requestVersion, String clientId,
+                                               int correlationId, Uuid clientInstanceId) {
+        RequestHeaderData data = new RequestHeaderData().
+                setRequestApiKey(requestApiKey.id).
+                setRequestApiVersion(requestVersion).
+                setClientId(clientId).
+                setCorrelationId(correlationId);
+
+        // KIP-1313 adds an optional ClientInstanceId tagged field in v2+.
+        if (clientInstanceId != null && requestApiKey.requestHeaderVersion(requestVersion) >= 2)
+            data.setClientInstanceId(clientInstanceId);
+
+        return data;
     }
 
     public ApiKeys apiKey() {
@@ -67,6 +83,14 @@ public class RequestHeader implements AbstractRequestResponse {
 
     public int correlationId() {
         return data.correlationId();
+    }
+
+    /**
+     * KIP-1313 adds an optional client instance ID for v2+ headers. Returns {@code null} for header v1
+     * or when no client instance ID was supplied.
+     */
+    public Uuid clientInstanceId() {
+        return data.clientInstanceId();
     }
 
     public RequestHeaderData data() {
@@ -167,6 +191,7 @@ public class RequestHeader implements AbstractRequestResponse {
                 ", clientId=" + clientId() +
                 ", correlationId=" + correlationId() +
                 ", headerVersion=" + headerVersion +
+                ", clientInstanceId=" + clientInstanceId() +
                 ")";
     }
 
